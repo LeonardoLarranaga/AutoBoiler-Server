@@ -5,6 +5,9 @@ import mqtt, { MqttClient } from "mqtt"
  */
 export class MqttSubscriber {
     
+    public static shared: MqttSubscriber = new MqttSubscriber()
+
+
     private client: MqttClient
     private topic: string
     private isSubscribed = false
@@ -99,5 +102,9 @@ export class MqttSubscriber {
 
     private handleMessage(id: string, data: string[]) {
         console.log(`Message for ${id}: ${data.join(", ")}`)
+    }
+
+    public test() {
+        console.log("Test")
     }
 }
