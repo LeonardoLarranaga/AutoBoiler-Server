@@ -10,6 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "localtunnel": "^2.0.2",
     "mqtt": "^5.14.1"
   }
 }
