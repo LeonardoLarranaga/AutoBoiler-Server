@@ -103,7 +103,6 @@ export class DatabaseManager {
         try {
             const authData = await this.pocketbase.collection('users').authWithOTP(otpId, otpCode)
             return { 
-                success: true, 
                 token: authData.token,
                 user: authData.record
             }
@@ -117,11 +116,7 @@ export class DatabaseManager {
         try {
             const temp = new PocketBase(this.url)
             temp.authStore.save(token)
-            
-            if (!temp.authStore.isValid) {
-                return false
-            }
-
+            if (!temp.authStore.isValid) return false;
             await temp.collection('users').authRefresh()
             return true
         } catch (error) {
