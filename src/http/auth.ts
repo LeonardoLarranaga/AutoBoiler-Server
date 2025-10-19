@@ -9,7 +9,7 @@ export class AuthHandler {
         try {
             const body = await parseAndValidate<{ email: string }>(request)
             
-            const email = await DatabaseManager.shared.createUser(body.email)
+            const email = await DatabaseManager.shared.createUser(body.email.toLowerCase())
             if (!email) return new Response(JSON.stringify({
                 error: "Failed to create user"
             }))

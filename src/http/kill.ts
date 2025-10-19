@@ -11,7 +11,7 @@ export class KillHandler {
 
         if (!await DatabaseManager.shared.verifyToken(body.token)) return ErrorResponse.NOT_AUTHORIZED
 
-        const kill = await DatabaseManager.shared.createKill(body.userId, body.killId, body.name)
+        const kill = await DatabaseManager.shared.createKill(body.userId, body.killId.toUpperCase(), body.name)
         
         if (kill instanceof Response) return kill
         return new Response(JSON.stringify(kill))
@@ -24,9 +24,9 @@ export class KillHandler {
         const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
         if (!userId) return ErrorResponse.NOT_AUTHORIZED
 
-        if (!await DatabaseManager.shared.killBelongsToUser(body.killId, userId)) return ErrorResponse.NOT_AUTHORIZED
+        if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
         
-        const report = await SummaryReportProcessor.shared.process(body.killId)
+        const report = await SummaryReportProcessor.shared.process(body.killId.toUpperCase())
         const end = new Date()
         console.success(`🧾 ${body.killId} - Summary report generated in ${end.getTime() - now.getTime()}ms`)
         return new Response(JSON.stringify(report))
