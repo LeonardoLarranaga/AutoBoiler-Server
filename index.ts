@@ -23,6 +23,10 @@ Bun.serve({
 
         "/app/kill/create": {
             POST: async (request) => await HttpHandler.Kill.createKill(request)
+        },
+
+        "/app/kill/reports/summary": {
+            POST: async (request) => await HttpHandler.Kill.summaryReport(request)
         }
     }
 })

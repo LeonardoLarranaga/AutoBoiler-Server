@@ -113,36 +113,33 @@ export class DatabaseManager {
     }
 
     async verifyToken(token: string): Promise<boolean> {
-        try {
-            const temp = new PocketBase(this.url)
-            temp.authStore.save(token)
-            if (!temp.authStore.isValid) return false;
-            await temp.collection('users').authRefresh()
-            return true
-        } catch (error) {
-            return false
-        }
+        const userId = await this.getUserIdFromToken(token)
+        return userId !== null
     }
 
-    async signOut(token: string): Promise<boolean> {
+    async killBelongsToUser(killId: string, userId: string): Promise<boolean> {
+        return await this.pocketbase.collection("kills").getFirstListItem(`esp_id = "${killId}" && user = "${userId}"`) !== null
+    }
+
+    async getUserIdFromToken(token: string): Promise<string | null> {
         try {
             const temp = new PocketBase(this.url)
             temp.authStore.save(token)
-            temp.authStore.clear()
-            return true
+            if (!temp.authStore.isValid) return null
+            await temp.collection('users').authRefresh()
+            return temp.authStore.record?.id ?? null
         } catch (error) {
-            console.error("Failed to sign out:", error)
-            return false
+            return null
         }
     }
 
     // MARK: - KiLL Management
 
-    async createKill(userId: string, espId: string, name: string): Promise<RecordModel | Response> {
+    async createKill(userId: string, killId: string, name: string): Promise<RecordModel | Response> {
         try {
             const kill = await this.pocketbase.collection("kills").create({
                 user: userId,
-                espId,
+                espId: killId,
                 name
             })
             return kill
@@ -153,7 +150,7 @@ export class DatabaseManager {
     }
 
     createKillState(killId: string, temperature: number, power: number, waterFlow: number) {
-        this.pocketbase.collection("kills").getFirstListItem(`esp_id = "${killId}"`).then((kill) => {
+        this.getKillFromKillId(killId).then((kill) => {
             if (!kill) return
             this.pocketbase.collection("kills_states").create({
                 kill: kill.id,
@@ -162,5 +159,19 @@ export class DatabaseManager {
                 water_flow: waterFlow,
             }).catch(() => {}) // Fire and forget
         }).catch(() => {})  // Fire and forget
+    }
+
+    async getKillFromKillId(killId: string): Promise<RecordModel | null> {
+        return await this.pocketbase.collection("kills").getFirstListItem(`esp_id = "${killId}"`) ?? null
+    }
+
+    async getKillStates(killId: string, startDate: Date, endDate: Date): Promise<RecordModel[]> {
+        const kill = await this.getKillFromKillId(killId)
+        if (!kill) return []
+
+        return await this.pocketbase.collection("kills_states").getFullList({
+            filter: `kill = "${kill.id}" && created >= "${startDate.toISOString()}" && created <= "${endDate.toISOString()}"`,
+            sort: "-created"
+        })
     }
 }
