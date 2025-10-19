@@ -6,6 +6,7 @@ export class DatabaseManager {
     private pocketbase: PocketBase
     private refreshInterval?: NodeJS.Timeout
     private readonly REFRESH_INTERVAL = 30 * 60 * 1000 // 30 minutes
+    private url: string
 
     private constructor() {
         const POCKETBASE_URL = process.env.POCKETBASE_URL
@@ -16,7 +17,8 @@ export class DatabaseManager {
             process.exit(1)
         }
 
-        this.pocketbase = new PocketBase(`http://${POCKETBASE_URL}:${POCKETBASE_PORT}`)
+        this.url = `http://${POCKETBASE_URL}:${POCKETBASE_PORT}`
+        this.pocketbase = new PocketBase(this.url)
     }
 
     async init() {
@@ -111,5 +113,19 @@ export class DatabaseManager {
         }
     }
 
-    
+    async verifyToken(token: string): Promise<boolean> {
+        try {
+            const temp = new PocketBase(this.url)
+            temp.authStore.save(token)
+            
+            if (!temp.authStore.isValid) {
+                return false
+            }
+
+            await temp.collection('users').authRefresh()
+            return true
+        } catch (error) {
+            return false
+        }
+    }
 }
