@@ -17,6 +17,7 @@ export class AuthHandler {
             const result = await DatabaseManager.shared.requestOTP(email)
             return new Response(JSON.stringify(result), { status: 200 })
         } catch (error: any) {
+            if (error instanceof Response) return error
             return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to request OTP")
         }
     }
@@ -27,6 +28,7 @@ export class AuthHandler {
             const result = await DatabaseManager.shared.verifyOTP(body.otpId, body.otpCode)
             return new Response(JSON.stringify(result))
         } catch (error: any) {
+            if (error instanceof Response) return error
             return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to verify OTP")
         }
     } 
