@@ -4,14 +4,16 @@ import { SummaryReportProcessor } from "../reports/summary"
 export class KillHandler {
     static async createKill(request: Request): Promise<Response> {
         const body = await parseAndValidate<{ 
-            userId: string, 
             token: string, 
             killId: string, 
             name: string }>(request)
 
         if (!await DatabaseManager.shared.verifyToken(body.token)) return ErrorResponse.NOT_AUTHORIZED
 
-        const kill = await DatabaseManager.shared.createKill(body.userId, body.killId.toUpperCase(), body.name)
+        const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
+        if (!userId) return ErrorResponse.NOT_AUTHORIZED
+
+        const kill = await DatabaseManager.shared.createKill(userId, body.killId.toUpperCase(), body.name)
         
         if (kill instanceof Response) return kill
         return new Response(JSON.stringify(kill))
