@@ -23,10 +23,23 @@ Al extrar el .zip, ejecuta `./pocketbase serve`, abre [http://127.0.0.1:8090]() 
 
 Ingresa a [Import Collections](http://localhost:8090/_/#/settings/import-collections) para añadir el esquema de la base de datos e ingresa los datos de `schema.json`.
 
-> En sistemas Windows, lo siguiente es incompatible.
+> En sistemas Windows, restaurar por backups es incompatible.
 
 Puedes restaurar a una versión con datos en [Backups](http://localhost:8090/_/#/settings/backups) y subiendo el archivo `pb_backup.zip`.
 
+#### Sistema de correos de verificación
+
+Crea una contraseña de aplicación en tu [cuenta de Google](https://myaccount.google.com/apppasswords).
+
+Ingresa a [Mail Settings](http://localhost:8090/_/#/settings/mail) e ingresa los siguientes datos:
+
+- **Sender name**: Tú Nombre + (KiLL), e.g.: Leo (KiLL)
+- **Sender address**: Tu correo de Google
+- Activa **Use SMTP mail server**
+- **SMTP server host**: smtp.gmail.com
+- **Port**: 587
+- **Username**: Tu correo de Google
+- **Password**: La contraseña de aplicación que generaste
 
 ## Iniciar el servidor
 
