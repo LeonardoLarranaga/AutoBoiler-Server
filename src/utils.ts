@@ -9,6 +9,8 @@ declare global {
          */
         success: (...args: any[]) => void
     }
+
+    var ErrorResponse: typeof ErrorResponseClass
 }
 
 console.success = (...args: any[]) => {
@@ -17,7 +19,7 @@ console.success = (...args: any[]) => {
 
 // MARK: Error responses
 
-export class ErrorResponse {
+class ErrorResponseClass {
     static readonly MISSING_PARAMETERS = new Response(JSON.stringify({
         error: "Missing parameters"
     }), { status: 400 })
@@ -27,5 +29,12 @@ export class ErrorResponse {
             error: error.message || message,
         }), { status: 500 })
     }
+
+    static NOT_AUTHORIZED = new Response(JSON.stringify({
+        error: "Not authorized"
+    }), { status: 401 })
 }
+
+globalThis.ErrorResponse = ErrorResponseClass
+
 export {}

@@ -1,5 +1,4 @@
 import { DatabaseManager } from "../database/manager"
-import { ErrorResponse } from "../utils"
 
 export class AuthHandler {
     static async userExists(request: Request): Promise<Response> {

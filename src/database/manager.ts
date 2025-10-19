@@ -1,4 +1,4 @@
-import PocketBase, { ClientResponseError } from "pocketbase"
+import PocketBase, { ClientResponseError, type RecordModel } from "pocketbase"
 
 export class DatabaseManager {
     public static shared: DatabaseManager = new DatabaseManager()
@@ -121,6 +121,22 @@ export class DatabaseManager {
             return true
         } catch (error) {
             return false
+        }
+    }
+
+    // MARK: - KiLL Management
+
+    async createKill(userId: string, espId: string, name: string): Promise<RecordModel | Response> {
+        try {
+            const kill = await this.pocketbase.collection("kills").create({
+                user: userId,
+                espId,
+                name
+            })
+            return kill
+        } catch (error) {
+            console.error("Failed to create kill:", error)
+            return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to create kill")
         }
     }
 }

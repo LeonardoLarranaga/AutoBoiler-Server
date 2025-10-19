@@ -19,6 +19,10 @@ Bun.serve({
         },
         "/app/auth/otp/verify": {
             POST: async (request) => await HttpHandler.Auth.verifyOtp(request)
+        },
+
+        "/app/kill/create": {
+            POST: async (request) => await HttpHandler.Kill.createKill(request)
         }
     }
 })
