@@ -4,9 +4,7 @@ import mqtt, { MqttClient } from "mqtt"
  * A class that subscribes to an MQTT topic and handles the messages.
  */
 export class MqttSubscriber {
-    
     public static shared: MqttSubscriber = new MqttSubscriber()
-
 
     private client: MqttClient
     private topic: string
@@ -16,7 +14,7 @@ export class MqttSubscriber {
     private readonly RECONNECT_DELAY = 250
     private readonly PING_INTERVAL = 1 * 1000
 
-    constructor() {
+    private constructor() {
         const MQTT_URL = process.env.MQTT_URL
         this.topic = process.env.MQTT_TOPIC || ""
 
