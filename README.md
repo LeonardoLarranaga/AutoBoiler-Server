@@ -19,6 +19,8 @@ Para instalar Pocketbase: Seguir los pasos en [pocketbase.io](https://pocketbase
 
 Al extrar el .zip, ejecuta `./pocketbase serve`, abre [http://127.0.0.1:8090]() en tu navegador y crea un usuario con tu email y contraseña de super-usuario.
 
+> Nota: Dependiendo de donde ejecutes pocketbase, es la instancia que tendrás. Si lo ejecutas desde el Desktop, y luego desde Documentos, serán dos instancias distintas.
+
 > Guarda tus datos de inicio de sesión, los ocuparás más adelante.
 
 Ingresa a [Import Collections](http://localhost:8090/_/#/settings/import-collections) para añadir el esquema de la base de datos e ingresa los datos de `schema.json`.
