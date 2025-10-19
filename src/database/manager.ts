@@ -59,21 +59,11 @@ export class DatabaseManager {
 
     // MARK: - App authentication
 
-    async exists(email: string): Promise<boolean> {
-        try {
-            const record = await this.pocketbase.collection('users').getOne(email)
-            return record !== null
-        } catch {
-            return false
-        }
-    }
-
-    async createUser(email: string, name: string): Promise<string | null> {
+    async createUser(email: string): Promise<string | null> {
         try {
             const password = crypto.randomUUID()
             await this.pocketbase.collection('users').create({ 
                 email, 
-                name, 
                 password,
                 passwordConfirm: password    
             })

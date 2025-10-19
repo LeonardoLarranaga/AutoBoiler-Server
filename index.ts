@@ -11,9 +11,6 @@ const port = process.env.PORT || 3000
 Bun.serve({
     port,
     routes: {
-        "/app/auth/user-exists": {
-            POST: async (request) => await HttpHandler.Auth.userExists(request)
-        },
         "/app/auth/otp/request": {
             POST: async (request) => await HttpHandler.Auth.requestOtp(request)
         },
