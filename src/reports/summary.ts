@@ -1,5 +1,5 @@
-import type { RecordModel } from "pocketbase"
 import { DatabaseManager } from "../database/manager"
+import type { RecordModel } from "pocketbase"
 
 type SummaryReport = {
     boilerId: string
@@ -11,9 +11,6 @@ type SummaryReport = {
 
 export class SummaryReportProcessor {
     public static shared: SummaryReportProcessor = new SummaryReportProcessor()
-
-    private constructor() {
-    }
 
     public async process(boilerId: string): Promise<SummaryReport> {
         // Get data for last 7 days

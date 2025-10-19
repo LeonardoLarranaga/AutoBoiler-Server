@@ -5,17 +5,47 @@ declare global {
     interface Console {
         /**
          * Logs a green message to the console.
-         * @param args - The arguments to log.
          */
         success: (...args: any[]) => void
     }
 
     var ErrorResponse: typeof ErrorResponseClass
+    /**
+     * Parses and validates JSON request body.
+     * Throws `ErrorResponse.MISSING_PARAMETERS` if any required field is missing or empty.
+     */
+    var parseAndValidate: typeof parseAndValidateFunction
 }
 
 console.success = (...args: any[]) => {
     console.log(`${GREEN}${args.join(" ")}${RESET}`)
 }
+
+/**
+ * Parses and validates JSON request body.
+ * Throws `ErrorResponse.MISSING_PARAMETERS` if any required field is missing or empty.
+ */
+async function parseAndValidateFunction<T extends Record<string, any>>(
+    request: Request,
+    requiredFields?: (keyof T)[]
+): Promise<T> {
+    try {
+        const body = await request.json() as T
+        const fieldsToCheck = requiredFields ?? (Object.keys(body) as (keyof T)[])
+
+        for (const field of fieldsToCheck) {
+            const value = body[field]
+            if (value === undefined || value === null || value === '') {
+                throw ErrorResponse.MISSING_PARAMETERS
+            }
+        }
+
+        return body
+    } catch {
+        throw ErrorResponse.MISSING_PARAMETERS
+    }
+}
+
 
 // MARK: Error responses
 
@@ -36,5 +66,6 @@ class ErrorResponseClass {
 }
 
 globalThis.ErrorResponse = ErrorResponseClass
+globalThis.parseAndValidate = parseAndValidateFunction
 
-export {}
+export { }

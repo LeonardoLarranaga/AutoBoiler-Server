@@ -1,7 +1,7 @@
 import "./src/utils"
-import { MqttSubscriber } from "./src/mqtt/subscriber"
-import { HttpHandler } from "./src/http/handler"
 import { DatabaseManager } from "./src/database/manager"
+import { HttpHandler } from "./src/http/handler"
+import { MqttSubscriber } from "./src/mqtt/subscriber"
 
 MqttSubscriber.shared
 await DatabaseManager.shared.init()
