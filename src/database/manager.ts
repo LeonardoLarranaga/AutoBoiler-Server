@@ -151,4 +151,16 @@ export class DatabaseManager {
             return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to create kill")
         }
     }
+
+    createKillState(killId: string, temperature: number, power: number, waterFlow: number) {
+        this.pocketbase.collection("kills").getFirstListItem(`esp_id = "${killId}"`).then((kill) => {
+            if (!kill) return
+            this.pocketbase.collection("kills_states").create({
+                kill: kill.id,
+                temperature,
+                power,
+                water_flow: waterFlow,
+            }).catch(() => {}) // Fire and forget
+        }).catch(() => {})  // Fire and forget
+    }
 }

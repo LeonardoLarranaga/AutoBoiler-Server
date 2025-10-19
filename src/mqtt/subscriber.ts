@@ -1,4 +1,5 @@
 import mqtt, { MqttClient } from "mqtt"
+import { DatabaseManager } from "../database/manager"
 
 /**
  * A class that subscribes to an MQTT topic and handles the messages.
@@ -99,10 +100,14 @@ export class MqttSubscriber {
     }
 
     private handleMessage(id: string, data: string[]) {
-        console.log(`Message for ${id}: ${data.join(", ")}`)
-    }
-
-    public test() {
-        console.log("Test")
+        const [source, powerStr, waterFlowStr, temperatureStr] = data
+        if (!source || !["boiler", "app"].includes(source) || !powerStr || !waterFlowStr || !temperatureStr) return
+        
+        const power = parseFloat(powerStr)
+        const waterFlow = parseFloat(waterFlowStr)
+        const temperature = parseFloat(temperatureStr)
+        if (isNaN(power) || isNaN(waterFlow) || isNaN(temperature)) return
+        
+        DatabaseManager.shared.createKillState(id, temperature, power, waterFlow)
     }
 }
