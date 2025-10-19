@@ -91,7 +91,8 @@ export class DatabaseManager {
 
     async verifyOTP(otpId: string, otpCode: string) {
         try {
-            const authData = await this.pocketbase.collection('users').authWithOTP(otpId, otpCode)
+            const temp = new PocketBase(this.url)
+            const authData = await temp.collection('users').authWithOTP(otpId, otpCode)
             return { 
                 token: authData.token,
                 user: authData.record
