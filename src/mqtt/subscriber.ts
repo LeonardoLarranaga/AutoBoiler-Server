@@ -49,7 +49,7 @@ export class MqttSubscriber {
             if (error) {
                 console.error(`Failed to subscribe to ${this.topic}:`, error)
             } else {
-                console.success(`Subscribed to ${this.topic}`)
+                console.success(`👀 Subscribed to ${this.topic}`)
                 this.isSubscribed = true
             }
         })
@@ -57,7 +57,7 @@ export class MqttSubscriber {
 
     private setupOnConnect() {
         this.client.on("connect", () => {
-            console.success(`Connected to MQTT broker!`)
+            console.success(`🔗 Connected to MQTT broker!`)
             this.subscribeToTopic()
         })
     }

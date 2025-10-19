@@ -39,7 +39,7 @@ export class DatabaseManager {
             }
         }
 
-        console.success("Authenticated with PocketBase as admin")
+        console.success("🔑 Authenticated with PocketBase as admin")
 
         this.refreshInterval = setInterval(async () => {
             try {
@@ -120,6 +120,18 @@ export class DatabaseManager {
             await temp.collection('users').authRefresh()
             return true
         } catch (error) {
+            return false
+        }
+    }
+
+    async signOut(token: string): Promise<boolean> {
+        try {
+            const temp = new PocketBase(this.url)
+            temp.authStore.save(token)
+            temp.authStore.clear()
+            return true
+        } catch (error) {
+            console.error("Failed to sign out:", error)
             return false
         }
     }
