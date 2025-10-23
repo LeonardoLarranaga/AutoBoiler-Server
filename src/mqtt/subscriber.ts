@@ -65,12 +65,13 @@ export class MqttSubscriber {
 
     /**
      * Handles a message published to the topic.
-     * The message is sent by a KiLL boiler or the KiLL app.
-     * If sent by the boiler, the message could represent:
-     *  - The status of the boiler when it is on and water flow is detected.
-     *  - A status change (on/off) from the physical buttons on the boiler.
-     * If sent by the KiLL app, the message could represent:
-     *  - A command to the boiler (on/off/set temperature).
+     * This topic is used for the boiler to send updates to the server.
+     * The message represents:
+     * The status of the boiler when it is on and water flow is detected.
+     * Contains in this order:
+     * - The current temperature of the boiler
+     * - The current power of the boiler
+     * - The current water flow of the boiler
     */
     private setupOnMessage() {
         this.client.on("message", (topic, message) => {
@@ -100,8 +101,8 @@ export class MqttSubscriber {
     }
 
     private handleMessage(id: string, data: string[]) {
-        const [source, temperatureStr, powerStr, waterFlowStr] = data
-        if (!source || !["boiler", "app"].includes(source) || !powerStr || !waterFlowStr || !temperatureStr) return
+        const [temperatureStr, powerStr, waterFlowStr] = data
+        if (!powerStr || !waterFlowStr || !temperatureStr) return
         
         const temperature = parseFloat(temperatureStr)
         const power = parseFloat(powerStr)

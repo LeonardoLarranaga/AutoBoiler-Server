@@ -29,7 +29,7 @@ while true; do
   power=$(map_power $temperature)
 
   # Format payload
-  payload=$(printf "boiler,%.2f,%.2f,%.2f" "$temperature" "$power" "$waterflow")
+  payload=$(printf "%.2f,%.2f,%.2f" "$temperature" "$power" "$waterflow")
 
   # Increment counter
   ((count++))
