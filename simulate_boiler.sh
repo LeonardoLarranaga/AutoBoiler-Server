@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TOPIC="kill/updates/espIdTest"
+TOPIC="kill/updates/ESPIDTEST"
 BROKER="localhost"
 PORT=1883
 
