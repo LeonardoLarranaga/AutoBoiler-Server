@@ -85,7 +85,7 @@ export class SummaryReportProcessor {
             dailyAverages.push(dailySums[day].total / dailySums[day].count)
         }
 
-        return dailyAverages.slice(-Math.min(7, dailyAverages.length))
+        return dailyAverages.slice(0, Math.min(7, dailyAverages.length)).reverse()
     }
 
     /**
