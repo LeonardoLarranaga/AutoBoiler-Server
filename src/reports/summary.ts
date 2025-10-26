@@ -53,7 +53,7 @@ export class SummaryReportProcessor {
      */
     private getTemperatureReadings(states: RecordModel[]): number[] {
         if (!states || states.length === 0) return []
-        return states.slice(-Math.min(6, states.length)).map((state) => state.temperature)
+        return states.slice(0, Math.min(6, states.length)).map((state) => state.temperature)
     }
 
     /**
