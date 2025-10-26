@@ -16,4 +16,3 @@ export const routes = {
         POST: async (request: Request) => await HttpHandler.Kill.summaryReport(request)
     }
 }
-
