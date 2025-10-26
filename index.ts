@@ -1,31 +1,13 @@
 import "./src/utils"
 import { DatabaseManager } from "./src/database/manager"
-import { HttpHandler } from "./src/http/handler"
 import { MqttSubscriber } from "./src/mqtt/subscriber"
+import { routes } from "./src/http/routes"
 
-MqttSubscriber.shared
+await MqttSubscriber.shared.init()
 await DatabaseManager.shared.init()
 
 const port = process.env.PORT || 3000
 
-Bun.serve({
-    port,
-    routes: {
-        "/app/auth/otp/request": {
-            POST: async (request) => await HttpHandler.Auth.requestOtp(request)
-        },
-        "/app/auth/otp/verify": {
-            POST: async (request) => await HttpHandler.Auth.verifyOtp(request)
-        },
-
-        "/app/kill/create": {
-            POST: async (request) => await HttpHandler.Kill.createKill(request)
-        },
-
-        "/app/kill/reports/summary": {
-            POST: async (request) => await HttpHandler.Kill.summaryReport(request)
-        }
-    }
-})
+Bun.serve({ port, routes })
 
 console.success(`🚀 Server running on port ${port}`)

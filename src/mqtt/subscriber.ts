@@ -36,6 +36,10 @@ export class MqttSubscriber {
         this.setupEventHandlers()
     }
 
+    async init() {
+        this.client.reconnect()
+    }
+
     private setupEventHandlers() {
         this.setupOnConnect()
         this.setupOnReconnect()
