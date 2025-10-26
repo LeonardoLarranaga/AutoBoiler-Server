@@ -11,6 +11,9 @@ export const routes = {
     "/app/kill/create": {
         POST: async (request: Request) => await HttpHandler.Kill.createKill(request)
     },
+    "/app/kill/list": {
+        POST: async (request: Request) => await HttpHandler.Kill.listKills(request)
+    },
 
     "/app/kill/reports/summary": {
         POST: async (request: Request) => await HttpHandler.Kill.summaryReport(request)

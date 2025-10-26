@@ -165,4 +165,11 @@ export class DatabaseManager {
             sort: "-created"
         })
     }
+
+    async getKillsForUser(userId: string): Promise<RecordModel[]> {
+        return await this.pocketbase.collection("kills").getFullList({
+            filter: `user = "${userId}"`,
+            sort: "name"
+        })
+    }
 }

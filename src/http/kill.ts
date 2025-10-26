@@ -19,6 +19,16 @@ export class KillHandler {
         return new Response(JSON.stringify(kill))
     }
 
+    static async listKills(request: Request): Promise<Response> {
+        const body = await parseAndValidate<{ token: string }>(request)
+
+        const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
+        if (!userId) return ErrorResponse.NOT_AUTHORIZED
+
+        const kills = await DatabaseManager.shared.getKillsForUser(userId)
+        return new Response(JSON.stringify({kills: kills}))
+    }
+
     static async summaryReport(request: Request): Promise<Response> {
         const now = new Date()
         const body = await parseAndValidate<{ token: string, killId: string }>(request)
