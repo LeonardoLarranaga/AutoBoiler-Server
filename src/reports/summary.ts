@@ -6,7 +6,12 @@ type SummaryReport = {
     lastDate: Date
     temperatureReadings: number[]
     powerReadings: number[]
-    waterFlowReadings: [number, number[]][]
+    waterFlowReadings: WaterFlowReading[]
+}
+
+type WaterFlowReading = {
+    day: number
+    flows: number[]
 }
 
 export class SummaryReportProcessor {
@@ -91,7 +96,7 @@ export class SummaryReportProcessor {
      * The first element is the number of the day (0-6)
      * The second element is an array of 4 random water flow readings for that day
      */
-    private getWaterFlowReadings(states: RecordModel[]): [number, number[]][] {
+    private getWaterFlowReadings(states: RecordModel[]): WaterFlowReading[] {
         if (!states || states.length === 0) return []
 
         // Group by day
@@ -111,7 +116,7 @@ export class SummaryReportProcessor {
         const sortedDays = Object.keys(dailyReadings).sort();
 
         // Create result with day numbers (0-6) and up to 4 random readings per day
-        const result: [number, number[]][] = [];
+        const result: WaterFlowReading[] = [];
         for (let i = 0; i < sortedDays.length && i < 7; i++) {
             const day = sortedDays[i];
             if (!day) continue
@@ -120,7 +125,7 @@ export class SummaryReportProcessor {
             
             // Select up to 4 random readings
             const selectedReadings = this.selectRandomReadings(readings, 4);
-            result.push([i, selectedReadings]);
+            result.push({ day: i, flows: selectedReadings });
         }
 
         return result;
