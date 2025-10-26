@@ -3,7 +3,7 @@ import type { RecordModel } from "pocketbase"
 
 type SummaryReport = {
     boilerId: string
-    lastDate: Date
+    lastDate: string
     temperatureReadings: number[]
     powerReadings: number[]
     waterFlowReadings: WaterFlowReading[]
@@ -32,7 +32,7 @@ export class SummaryReportProcessor {
 
         const report: SummaryReport = {
             boilerId,
-            lastDate,
+            lastDate: lastDate.toISOString(),
             temperatureReadings,
             powerReadings,
             waterFlowReadings,
@@ -45,9 +45,7 @@ export class SummaryReportProcessor {
      * Get the last temperature date from the states
      */
     private getLastDate(states: RecordModel[]): Date {
-        if (!states || states.length === 0) return new Date()
-
-        return states?.[0]?.created ?? new Date()
+        return new Date(states?.[0]?.created ?? Date.now())
     }
 
     /**
