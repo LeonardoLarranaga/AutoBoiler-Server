@@ -161,7 +161,7 @@ export class DatabaseManager {
         if (!kill) return []
 
         return await this.pocketbase.collection("kills_states").getFullList({
-            filter: `kill = "${kill.id}" && created >= "${startDate.toISOString()}" && created <= "${endDate.toISOString()}"`,
+            filter: `kill = "${kill.id}" && created >= "${toPocketbaseDate(startDate)}" && created <= "${toPocketbaseDate(endDate)}"`,
             sort: "-created"
         })
     }
@@ -171,5 +171,16 @@ export class DatabaseManager {
             filter: `user = "${userId}"`,
             sort: "name"
         })
+    }
+
+    async getLastKillStateDateBeforeTimestamp(killId: string, timestamp: Date): Promise<Date | null> {
+        const kill = await this.getKillFromKillId(killId)
+        if (!kill) return null
+
+        const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created < "${timestamp.toISOString()}"`, {
+            sort: "-created"
+        })
+        
+        return state ? new Date(state.created) : null
     }
 }

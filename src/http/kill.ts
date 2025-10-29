@@ -1,4 +1,5 @@
 import { DatabaseManager } from "../database/manager"
+import { ReportDetailProcessor } from "../reports/details"
 import { SummaryReportProcessor } from "../reports/summary"
 
 export class KillHandler {
@@ -43,6 +44,34 @@ export class KillHandler {
         const report = await SummaryReportProcessor.shared.process(body.killId.toUpperCase())
         const end = new Date()
         console.success(`🧾 ${body.killId} - Summary report generated in ${end.getTime() - now.getTime()}ms`)
+        return new Response(JSON.stringify(report))
+    }
+
+    static async detailsReport(request: Request): Promise<Response> {
+        const now = new Date()
+
+        const body = await parseAndValidate<{
+            token: string,
+            killId: string,
+            dateInterval: "hour" | "day" | "week" | "month" | "year" | "range",
+            type: "temperature" | "power" | "water-flow",
+            currentTimestamp: Date
+            startDate?: Date
+            endDate?: Date
+        }>(request)
+
+        const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
+        if (!userId) return ErrorResponse.NOT_AUTHORIZED
+
+        if (body.killId.toUpperCase() !== "ESPIDTEST") {
+            if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
+        }
+        
+        const report = await ReportDetailProcessor.shared.process(body.killId.toUpperCase(), body.dateInterval, body.type, body.currentTimestamp, body.startDate, body.endDate)
+
+        const end = new Date()
+        console.success(`🧾 ${body.killId} - Details report generated in ${end.getTime() - now.getTime()}ms`)
+
         return new Response(JSON.stringify(report))
     }
 }

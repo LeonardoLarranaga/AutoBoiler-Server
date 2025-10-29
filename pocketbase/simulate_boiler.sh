@@ -37,7 +37,7 @@ exec 3< <(mosquitto_sub -h "$BROKER" -p "$PORT" -t "$COMMAND_TOPIC")
 # Main loop
 while true; do
   # Try reading one command (non-blocking)
-  if read -t 0.1 command <&3; then
+  if read -t 1 command <&3; then
     case "$command" in
       off|OFF)
         if [ $PUBLISHING_ENABLED -eq 1 ]; then

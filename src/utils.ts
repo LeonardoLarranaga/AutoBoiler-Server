@@ -15,6 +15,7 @@ declare global {
      * Throws `ErrorResponse.MISSING_PARAMETERS` if any required field is missing or empty.
      */
     var parseAndValidate: typeof parseAndValidateFunction
+    var toPocketbaseDate: typeof toPBDateString
 }
 
 console.success = (...args: any[]) => {
@@ -65,7 +66,16 @@ class ErrorResponseClass {
     }), { status: 401 })
 }
 
+function toPBDateString(date: Date): string {
+    return date
+      .toISOString()
+      .replace("T", " ")   // use space instead of T
+      .replace("Z", "Z");  // keep Z to mark UTC
+  }
+
 globalThis.ErrorResponse = ErrorResponseClass
 globalThis.parseAndValidate = parseAndValidateFunction
+globalThis.toPocketbaseDate = toPBDateString
+
 
 export { }
