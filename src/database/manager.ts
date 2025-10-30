@@ -178,7 +178,7 @@ export class DatabaseManager {
         if (!kill) return null
 
         try {
-            const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created < "${timestamp.toISOString()}"`, {
+            const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created < "${toPocketbaseDate(timestamp)}"`, {
                 sort: "-created"
             })
             
@@ -196,7 +196,7 @@ export class DatabaseManager {
         if (!kill) return null
 
         try {
-            const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created > "${timestamp.toISOString()}"`, {
+            const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created > "${toPocketbaseDate(timestamp)}"`, {
                 sort: "created"
             })
             

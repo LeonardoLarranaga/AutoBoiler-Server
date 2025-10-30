@@ -1,5 +1,6 @@
 import type { RecordModel } from "pocketbase"
 import { DatabaseManager } from "../database/manager"
+import start from "mqtt/bin/pub"
 
 type DataPoint = {
     timestamp: Date
@@ -22,6 +23,7 @@ export class ReportDetailProcessor {
         let dataPoints = await this.fetchDataPoints(killId, dateInterval, type, currentTimestamp, direction)
         switch (dateInterval) {
             case "hour": 
+                dataPoints = await this.getHourlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "day": 
                 dataPoints = await this.getDailyDataPoints(killId, currentTimestamp, direction, type)
@@ -43,6 +45,34 @@ export class ReportDetailProcessor {
         }
     }
 
+    private async getHourlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+        let startDate = new Date(currentTimestamp)
+        let endDate = new Date(startDate)
+
+        startDate.setMinutes(0, 0, 0)
+        endDate.setMinutes(59, 59, 999)
+
+        let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+        
+        if (states.length === 0) {
+            let newStateDate: Date | null = null
+            if (direction === "backward") {
+                newStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
+            } else {
+                newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
+            }
+            if (!newStateDate) return []
+            startDate = new Date(newStateDate)
+            endDate = new Date(startDate)
+            startDate.setMinutes(0, 0, 0)
+            endDate.setMinutes(59, 59, 999)
+            states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+            if (states.length === 0) return []
+        }
+
+        return this.mapDataPoints(states, type)
+    }
+
     private async getDailyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
@@ -54,21 +84,19 @@ export class ReportDetailProcessor {
 
         // If no data is found, look for data in the appropriate direction
         if (states.length === 0) {
+            let newStateDate: Date | null = null
             if (direction === "backward") {
-                const lastStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
-                if (!lastStateDate) return []
-                endDate = new Date(lastStateDate)
-                startDate = new Date(endDate)
+                newStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
             } else {
-                const nextStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
-                if (!nextStateDate) return []
-                startDate = new Date(nextStateDate)
-                endDate = new Date(startDate)
+                newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            
+            if (!newStateDate) return []
+            startDate = new Date(newStateDate)
+            endDate = new Date(startDate)
             startDate.setHours(0, 0, 0, 0)
             endDate.setHours(23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+            if (states.length === 0) return []
         }
 
         return this.groupBy("hour", this.mapDataPoints(states, type))
@@ -108,7 +136,6 @@ export class ReportDetailProcessor {
 
         let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
 
-        console.log(currentTimestamp)
         // If no data is found, look for data in the appropriate direction
         if (states.length === 0) {
             if (direction === "backward") {
