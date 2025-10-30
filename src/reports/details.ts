@@ -14,17 +14,17 @@ type ReportDetailResult = {
 export class ReportDetailProcessor {
     public static shared: ReportDetailProcessor = new ReportDetailProcessor()
 
-    public async process(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date, startDate?: Date, endDate?: Date): Promise<ReportDetailResult> {
+    public async process(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date, direction: "forward" | "backward", startDate?: Date, endDate?: Date): Promise<ReportDetailResult> {
         if (dateInterval === "range") {
             if (!startDate || !endDate) throw ErrorResponse.MISSING_PARAMETERS
         }
 
-        let dataPoints = await this.fetchDataPoints(killId, dateInterval, type, currentTimestamp)
+        let dataPoints = await this.fetchDataPoints(killId, dateInterval, type, currentTimestamp, direction)
         switch (dateInterval) {
             case "hour": 
                 break
             case "day": 
-                dataPoints = this.groupBy("hour", dataPoints)
+                dataPoints = await this.getDailyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "week":
             case "month":
@@ -43,7 +43,38 @@ export class ReportDetailProcessor {
         }
     }
 
-    private async fetchDataPoints(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date | string): Promise<DataPoint[]> {
+    private async getDailyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+        let startDate = new Date(currentTimestamp)
+        let endDate = new Date(startDate)
+        
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(23, 59, 59, 999)
+
+        let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+
+        // If no data is found, look for data in the appropriate direction
+        if (states.length === 0) {
+            if (direction === "backward") {
+                const lastStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
+                if (!lastStateDate) return []
+                endDate = new Date(lastStateDate)
+                startDate = new Date(endDate)
+            } else {
+                const nextStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
+                if (!nextStateDate) return []
+                startDate = new Date(nextStateDate)
+                endDate = new Date(startDate)
+            }
+            
+            startDate.setHours(0, 0, 0, 0)
+            endDate.setHours(23, 59, 59, 999)
+            states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+        }
+
+        return this.groupBy("hour", this.mapDataPoints(states, type))
+    }
+
+    private async fetchDataPoints(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date | string, direction: "forward" | "backward"): Promise<DataPoint[]> {
         // Calculate the interval in days for the given date interval
         const intervals: Record<string, number> = {
             hour: 1,
@@ -53,28 +84,54 @@ export class ReportDetailProcessor {
             year: 365
         }
 
-        // Calculate the start date based on the end date and the date interval
-        const startDateFunc = (endDate: Date) => {
-            const startDate = new Date(endDate)
+        // Calculate start and end dates based on direction
+        let startDate: Date
+        let endDate: Date
+        
+        if (direction === "backward") {
+            endDate = new Date(currentTimestamp)
+            startDate = new Date(endDate)
             if (dateInterval === "hour") {
                 startDate.setHours(startDate.getHours() - intervals[dateInterval]!)
             } else {
                 startDate.setDate(startDate.getDate() - intervals[dateInterval]!)
             }
-            return startDate
+        } else {
+            startDate = new Date(currentTimestamp)
+            endDate = new Date(startDate)
+            if (dateInterval === "hour") {
+                endDate.setHours(endDate.getHours() + intervals[dateInterval]!)
+            } else {
+                endDate.setDate(endDate.getDate() + intervals[dateInterval]!)
+            }
         }
-
-        let endDate = new Date(currentTimestamp)
-        let startDate = startDateFunc(endDate)
 
         let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
 
-        // If no data is found, look for the latest state before the current timestamp
+        console.log(currentTimestamp)
+        // If no data is found, look for data in the appropriate direction
         if (states.length === 0) {
-            const lastStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, endDate)
-            if (!lastStateDate) return []
-            endDate = new Date(lastStateDate)
-            startDate = startDateFunc(endDate)
+            if (direction === "backward") {
+                const lastStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, endDate)
+                if (!lastStateDate) return []
+                endDate = new Date(lastStateDate)
+                startDate = new Date(endDate)
+                if (dateInterval === "hour") {
+                    startDate.setHours(startDate.getHours() - intervals[dateInterval]!)
+                } else {
+                    startDate.setDate(startDate.getDate() - intervals[dateInterval]!)
+                }
+            } else {
+                const nextStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, startDate)
+                if (!nextStateDate) return []
+                startDate = new Date(nextStateDate)
+                endDate = new Date(startDate)
+                if (dateInterval === "hour") {
+                    endDate.setHours(endDate.getHours() + intervals[dateInterval]!)
+                } else {
+                    endDate.setDate(endDate.getDate() + intervals[dateInterval]!)
+                }
+            }
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
         }
 

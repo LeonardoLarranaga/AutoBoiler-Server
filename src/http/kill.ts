@@ -55,7 +55,8 @@ export class KillHandler {
             killId: string,
             dateInterval: "hour" | "day" | "week" | "month" | "year" | "range",
             type: "temperature" | "power" | "water-flow",
-            currentTimestamp: Date
+            currentTimestamp: Date,
+            direction: "forward" | "backward"
             startDate?: Date
             endDate?: Date
         }>(request)
@@ -67,7 +68,7 @@ export class KillHandler {
             if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
         }
         
-        const report = await ReportDetailProcessor.shared.process(body.killId.toUpperCase(), body.dateInterval, body.type, body.currentTimestamp, body.startDate, body.endDate)
+        const report = await ReportDetailProcessor.shared.process(body.killId.toUpperCase(), body.dateInterval, body.type, body.currentTimestamp <= new Date() ? body.currentTimestamp : new Date(), body.direction, body.startDate, body.endDate)
 
         const end = new Date()
         console.success(`🧾 ${body.killId} - Details report generated in ${end.getTime() - now.getTime()}ms`)
