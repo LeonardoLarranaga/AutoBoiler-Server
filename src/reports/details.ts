@@ -1,6 +1,5 @@
 import type { RecordModel } from "pocketbase"
 import { DatabaseManager } from "../database/manager"
-import start from "mqtt/bin/pub"
 
 type DataPoint = {
     timestamp: Date
@@ -29,8 +28,10 @@ export class ReportDetailProcessor {
                 dataPoints = await this.getDailyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "week":
+                dataPoints = await this.getWeeklyDataPoints(killId, currentTimestamp, direction, type)
+                break
             case "month":
-                dataPoints = this.groupBy("day", dataPoints)
+                dataPoints = await this.getMonthlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "year":
                 dataPoints = this.groupBy("month", dataPoints)
@@ -101,6 +102,67 @@ export class ReportDetailProcessor {
 
         return this.groupBy("hour", this.mapDataPoints(states, type))
     }
+
+    private async getWeeklyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+        let startDate = new Date(currentTimestamp)
+        let endDate = new Date(startDate)
+        
+        startDate.setDate(startDate.getDate() - 7)
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(23, 59, 59, 999)
+
+        let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+
+        if (states.length === 0) {
+            let newStateDate: Date | null = null
+            if (direction === "backward") {
+                newStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
+            } else {
+                newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
+            }
+            if (!newStateDate) return []
+            startDate = new Date(newStateDate)
+            endDate = new Date(startDate)
+            startDate.setDate(startDate.getDate() - 7)
+            startDate.setHours(0, 0, 0, 0)
+            endDate.setHours(23, 59, 59, 999)
+            states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+            if (states.length === 0) return []
+        }
+
+        return this.groupBy("day", this.mapDataPoints(states, type))
+    }
+
+    private async getMonthlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+        let startDate = new Date(currentTimestamp)
+        let endDate = new Date(startDate)
+
+        startDate.setDate(1)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999)
+
+        let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+
+        if (states.length === 0) {
+            let newStateDate: Date | null = null
+            if (direction === "backward") {
+                newStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
+            } else {
+                newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
+            }
+            if (!newStateDate) return []
+            startDate = new Date(newStateDate)
+            endDate = new Date(startDate)
+            startDate.setDate(1)
+            startDate.setHours(0, 0, 0, 0)
+            endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999)
+            states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+            if (states.length === 0) return []
+        }
+
+        return this.groupBy("day", this.mapDataPoints(states, type))
+    }
+
 
     private async fetchDataPoints(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date | string, direction: "forward" | "backward"): Promise<DataPoint[]> {
         // Calculate the interval in days for the given date interval
