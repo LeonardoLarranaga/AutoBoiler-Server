@@ -177,10 +177,17 @@ export class DatabaseManager {
         const kill = await this.getKillFromKillId(killId)
         if (!kill) return null
 
-        const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created < "${timestamp.toISOString()}"`, {
-            sort: "-created"
-        })
-        
-        return state ? new Date(state.created) : null
+        try {
+            const state = await this.pocketbase.collection("kills_states").getFirstListItem(`kill = "${kill.id}" && created < "${timestamp.toISOString()}"`, {
+                sort: "-created"
+            })
+            
+            return state ? new Date(state.created) : null
+        } catch (error) {
+            if (error instanceof ClientResponseError && error.status === 404) {
+                return null
+            }
+            throw error
+        }
     }
 }
