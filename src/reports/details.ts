@@ -9,6 +9,7 @@ type DataPoint = {
 type ReportDetailResult = {
     dataPoints: DataPoint[]
     average: number
+    kwhUsage?: number
 }
 
 export class ReportDetailProcessor {
@@ -19,34 +20,35 @@ export class ReportDetailProcessor {
             if (!startDate || !endDate) throw ErrorResponse.MISSING_PARAMETERS
         }
 
-        let dataPoints: DataPoint[] = []
+        let result: { dataPoints: DataPoint[], kwhUsage?: number } = { dataPoints: [] }
         switch (dateInterval) {
             case "hour": 
-                dataPoints = await this.getHourlyDataPoints(killId, currentTimestamp, direction, type)
+                result = await this.getHourlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "day": 
-                dataPoints = await this.getDailyDataPoints(killId, currentTimestamp, direction, type)
+                result = await this.getDailyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "week":
-                dataPoints = await this.getWeeklyDataPoints(killId, currentTimestamp, direction, type)
+                result = await this.getWeeklyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "month":
-                dataPoints = await this.getMonthlyDataPoints(killId, currentTimestamp, direction, type)
+                result = await this.getMonthlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "year":
-                dataPoints = await this.getYearlyDataPoints(killId, currentTimestamp, direction, type)
+                result = await this.getYearlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "range":
                 break
         }
 
         return {
-            dataPoints: dataPoints,
-            average: dataPoints.reduce((acc, curr) => acc + curr.value, 0) / dataPoints.length,
+            dataPoints: result.dataPoints,
+            average: result.dataPoints.reduce((acc, curr) => acc + curr.value, 0) / result.dataPoints.length,
+            kwhUsage: result.kwhUsage,
         }
     }
 
-    private async getHourlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+    private async getHourlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<{ dataPoints: DataPoint[], kwhUsage?: number }> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
 
@@ -62,19 +64,22 @@ export class ReportDetailProcessor {
             } else {
                 newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            if (!newStateDate) return []
+            if (!newStateDate) return { dataPoints: [] }
             startDate = new Date(newStateDate)
             endDate = new Date(startDate)
             startDate.setMinutes(0, 0, 0)
             endDate.setMinutes(59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
-            if (states.length === 0) return []
+            if (states.length === 0) return { dataPoints: [] }
         }
 
-        return this.mapDataPoints(states, type)
+        const kwhUsage = this.calculateKwhUsage(states, type)
+        const dataPoints = this.mapDataPoints(states, type)
+
+        return { dataPoints, kwhUsage }
     }
 
-    private async getDailyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+    private async getDailyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<{ dataPoints: DataPoint[], kwhUsage?: number }> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
         
@@ -91,19 +96,22 @@ export class ReportDetailProcessor {
             } else {
                 newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            if (!newStateDate) return []
+            if (!newStateDate) return { dataPoints: [] }
             startDate = new Date(newStateDate)
             endDate = new Date(startDate)
             startDate.setHours(0, 0, 0, 0)
             endDate.setHours(23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
-            if (states.length === 0) return []
+            if (states.length === 0) return { dataPoints: [] }
         }
 
-        return this.groupBy("hour", this.mapDataPoints(states, type))
+        const kwhUsage = this.calculateKwhUsage(states, type)
+        const dataPoints = this.groupBy("hour", this.mapDataPoints(states, type))
+        
+        return { dataPoints, kwhUsage }
     }
 
-    private async getWeeklyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+    private async getWeeklyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<{ dataPoints: DataPoint[], kwhUsage?: number }> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
         
@@ -120,20 +128,23 @@ export class ReportDetailProcessor {
             } else {
                 newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            if (!newStateDate) return []
+            if (!newStateDate) return { dataPoints: [] }
             startDate = new Date(newStateDate)
             endDate = new Date(startDate)
             startDate.setDate(startDate.getDate() - 7)
             startDate.setHours(0, 0, 0, 0)
             endDate.setHours(23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
-            if (states.length === 0) return []
+            if (states.length === 0) return { dataPoints: [] }
         }
 
-        return this.groupBy("day", this.mapDataPoints(states, type))
+        const kwhUsage = this.calculateKwhUsage(states, type)
+        const dataPoints = this.groupBy("day", this.mapDataPoints(states, type))
+        
+        return { dataPoints, kwhUsage }
     }
 
-    private async getMonthlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+    private async getMonthlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<{ dataPoints: DataPoint[], kwhUsage?: number }> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
 
@@ -150,20 +161,23 @@ export class ReportDetailProcessor {
             } else {
                 newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            if (!newStateDate) return []
+            if (!newStateDate) return { dataPoints: [] }
             startDate = new Date(newStateDate)
             endDate = new Date(startDate)
             startDate.setDate(1)
             startDate.setHours(0, 0, 0, 0)
             endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
-            if (states.length === 0) return []
+            if (states.length === 0) return { dataPoints: [] }
         }
 
-        return this.groupBy("day", this.mapDataPoints(states, type))
+        const kwhUsage = this.calculateKwhUsage(states, type)
+        const dataPoints = this.groupBy("day", this.mapDataPoints(states, type))
+        
+        return { dataPoints, kwhUsage }
     }
 
-    private async getYearlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+    private async getYearlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<{ dataPoints: DataPoint[], kwhUsage?: number }> {
         let startDate = new Date(currentTimestamp)
         let endDate = new Date(startDate)
 
@@ -179,16 +193,19 @@ export class ReportDetailProcessor {
             } else {
                 newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
-            if (!newStateDate) return []
+            if (!newStateDate) return { dataPoints: [] }
             startDate = new Date(newStateDate)
             endDate = new Date(startDate)
             startDate = new Date(startDate.getFullYear(), 0, 1, 0, 0, 0, 0)
             endDate = new Date(startDate.getFullYear(), 11, 31, 23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
-            if (states.length === 0) return []
+            if (states.length === 0) return { dataPoints: [] }
         }
 
-        return this.groupBy("month", this.mapDataPoints(states, type))
+        const kwhUsage = this.calculateKwhUsage(states, type)
+        const dataPoints = this.groupBy("month", this.mapDataPoints(states, type))
+        
+        return { dataPoints, kwhUsage }
     }
 
     private mapDataPoints(states: RecordModel[], type: "temperature" | "power" | "water-flow"): DataPoint[] {
@@ -251,5 +268,39 @@ export class ReportDetailProcessor {
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 
         return points
+    }
+
+    private calculateKwhUsage(states: RecordModel[], type: "temperature" | "power" | "water-flow"): number | undefined {
+        if (type !== "power" || states.length < 2) {
+            return undefined
+        }
+
+        let totalKwh = 0
+        
+        // Sort states by timestamp to ensure correct order
+        const sortedStates = states.slice().sort((a, b) => 
+            new Date(a.created).getTime() - new Date(b.created).getTime()
+        )
+
+        for (let i = 1; i < sortedStates.length; i++) {
+            const prevState = sortedStates[i - 1]
+            const currentState = sortedStates[i]
+            
+            if (!prevState || !currentState) continue
+            
+            const prevTime = new Date(prevState.created).getTime()
+            const currentTime = new Date(currentState.created).getTime()
+            const timeDiffSeconds = (currentTime - prevTime) / 1000
+            
+            // Only calculate if the time difference is <= 10 seconds
+            // (boiler sends data every 3 seconds, gaps > 10 seconds indicate missing data)
+            if (timeDiffSeconds <= 10) {
+                const timeDiffHours = timeDiffSeconds / 3600
+                const powerKw = prevState.power
+                totalKwh += powerKw * timeDiffHours
+            }
+        }
+
+        return totalKwh
     }
 }
