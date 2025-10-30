@@ -19,7 +19,7 @@ export class ReportDetailProcessor {
             if (!startDate || !endDate) throw ErrorResponse.MISSING_PARAMETERS
         }
 
-        let dataPoints = await this.fetchDataPoints(killId, dateInterval, type, currentTimestamp, direction)
+        let dataPoints: DataPoint[] = []
         switch (dateInterval) {
             case "hour": 
                 dataPoints = await this.getHourlyDataPoints(killId, currentTimestamp, direction, type)
@@ -34,7 +34,7 @@ export class ReportDetailProcessor {
                 dataPoints = await this.getMonthlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "year":
-                dataPoints = this.groupBy("month", dataPoints)
+                dataPoints = await this.getYearlyDataPoints(killId, currentTimestamp, direction, type)
                 break
             case "range":
                 break
@@ -163,68 +163,32 @@ export class ReportDetailProcessor {
         return this.groupBy("day", this.mapDataPoints(states, type))
     }
 
+    private async getYearlyDataPoints(killId: string, currentTimestamp: Date | string, direction: "forward" | "backward", type: "temperature" | "power" | "water-flow"): Promise<DataPoint[]> {
+        let startDate = new Date(currentTimestamp)
+        let endDate = new Date(startDate)
 
-    private async fetchDataPoints(killId: string, dateInterval: "hour" | "day" | "week" | "month" | "year" | "range", type: "temperature" | "power" | "water-flow", currentTimestamp: Date | string, direction: "forward" | "backward"): Promise<DataPoint[]> {
-        // Calculate the interval in days for the given date interval
-        const intervals: Record<string, number> = {
-            hour: 1,
-            day: 1,
-            week: 7,
-            month: 30,
-            year: 365
-        }
-
-        // Calculate start and end dates based on direction
-        let startDate: Date
-        let endDate: Date
-        
-        if (direction === "backward") {
-            endDate = new Date(currentTimestamp)
-            startDate = new Date(endDate)
-            if (dateInterval === "hour") {
-                startDate.setHours(startDate.getHours() - intervals[dateInterval]!)
-            } else {
-                startDate.setDate(startDate.getDate() - intervals[dateInterval]!)
-            }
-        } else {
-            startDate = new Date(currentTimestamp)
-            endDate = new Date(startDate)
-            if (dateInterval === "hour") {
-                endDate.setHours(endDate.getHours() + intervals[dateInterval]!)
-            } else {
-                endDate.setDate(endDate.getDate() + intervals[dateInterval]!)
-            }
-        }
+        startDate = new Date(startDate.getFullYear(), 0, 1, 0, 0, 0, 0)
+        endDate = new Date(startDate.getFullYear(), 11, 31, 23, 59, 59, 999)
 
         let states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
 
-        // If no data is found, look for data in the appropriate direction
         if (states.length === 0) {
+            let newStateDate: Date | null = null
             if (direction === "backward") {
-                const lastStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, endDate)
-                if (!lastStateDate) return []
-                endDate = new Date(lastStateDate)
-                startDate = new Date(endDate)
-                if (dateInterval === "hour") {
-                    startDate.setHours(startDate.getHours() - intervals[dateInterval]!)
-                } else {
-                    startDate.setDate(startDate.getDate() - intervals[dateInterval]!)
-                }
+                newStateDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(killId, startDate)
             } else {
-                const nextStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, startDate)
-                if (!nextStateDate) return []
-                startDate = new Date(nextStateDate)
-                endDate = new Date(startDate)
-                if (dateInterval === "hour") {
-                    endDate.setHours(endDate.getHours() + intervals[dateInterval]!)
-                } else {
-                    endDate.setDate(endDate.getDate() + intervals[dateInterval]!)
-                }
+                newStateDate = await DatabaseManager.shared.getNextKillStateDateAfterTimestamp(killId, endDate)
             }
+            if (!newStateDate) return []
+            startDate = new Date(newStateDate)
+            endDate = new Date(startDate)
+            startDate = new Date(startDate.getFullYear(), 0, 1, 0, 0, 0, 0)
+            endDate = new Date(startDate.getFullYear(), 11, 31, 23, 59, 59, 999)
             states = await DatabaseManager.shared.getKillStates(killId, startDate, endDate)
+            if (states.length === 0) return []
         }
 
-        return this.mapDataPoints(states, type).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+        return this.groupBy("month", this.mapDataPoints(states, type))
     }
 
     private mapDataPoints(states: RecordModel[], type: "temperature" | "power" | "water-flow"): DataPoint[] {
