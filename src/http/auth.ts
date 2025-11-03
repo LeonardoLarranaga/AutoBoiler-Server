@@ -36,8 +36,26 @@ export class AuthHandler {
 
     static async generateBrokerCertificate(request: Request): Promise<Response> {
         try {
-            const body = await parseAndValidate<{ token: string, espId: string }>(request)
-            return await CertificateGenerator.shared.generateBrokerCertificate(body.token, body.espId)
+            const body = await parseAndValidate<{ token: string, killId: string }>(request)
+            
+            const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
+            if (!userId) return ErrorResponse.NOT_AUTHORIZED
+
+            if (body.killId.toUpperCase() !== "ESPIDTEST") {
+                if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
+            }
+
+            const certificates = await CertificateGenerator.shared.generateBrokerCertificate(body.killId)
+            
+            // Convert buffers to base64 strings for JSON response
+            return new Response(JSON.stringify({
+                clientCert: certificates.clientCert.toString('base64'),
+                clientKey: certificates.clientKey.toString('base64'),
+                caCert: certificates.caCert.toString('base64')
+            }), { 
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            })
         } catch (error: any) {
             if (error instanceof Response) return error
             return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to generate broker certificate")
