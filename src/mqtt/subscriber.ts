@@ -1,5 +1,7 @@
 import mqtt, { MqttClient } from "mqtt"
 import { DatabaseManager } from "../database/manager"
+import path from "path"
+import fs from "fs"
 
 /**
  * A class that subscribes to an MQTT topic and handles the messages.
@@ -15,29 +17,44 @@ export class MqttSubscriber {
     private readonly RECONNECT_DELAY = 250
     private readonly PING_INTERVAL = 1 * 1000
 
-    private constructor() {
-        const MQTT_URL = process.env.MQTT_URL
-        this.topic = process.env.MQTT_TOPIC || ""
+    private readonly certDir: string
 
-        if (!MQTT_URL || !this.topic) {
+    private constructor() {
+        this.topic = process.env.MQTT_TOPIC || ""
+        const MOSQUITTO_PATH = process.env.MOSQUITTO_PATH
+        const MQTT_HOSTNAME = process.env.MQTT_HOSTNAME
+
+        if (!MQTT_HOSTNAME || !this.topic || !MOSQUITTO_PATH) {
             console.error("Missing environment variables.")
             process.exit(1)
         }
 
-        this.client = mqtt.connect(MQTT_URL, {
-            clientId: `killserver_${Math.random().toString(16).slice(2, 10)}`,
-            clean: true,
+        this.certDir = path.join(MOSQUITTO_PATH, "certs")
+        // Secure TLS options
+        const options: mqtt.IClientOptions = {
+            host: MQTT_HOSTNAME,
+            port: 8883,
+            protocol: "mqtts",
+            clientId: `bun_server`,
             reconnectPeriod: this.RECONNECT_DELAY,
-            connectTimeout: this.CONNECTION_TIMEOUT,
+            clean: true,
+            rejectUnauthorized: true,
             keepalive: this.PING_INTERVAL,
-            resubscribe: true,
-        })
+            resubscribe: false, // Handle resubscription manually
+            connectTimeout: this.CONNECTION_TIMEOUT,
+            ca: fs.readFileSync(path.join(this.certDir, "ca.crt")),
+            key: fs.readFileSync(path.join(this.certDir, "bun.key")),
+            cert: fs.readFileSync(path.join(this.certDir, "bun.crt"))
+        }
+
+        this.client = mqtt.connect(options)
 
         this.setupEventHandlers()
     }
 
     async init() {
-        this.client.reconnect()
+        // Connection is automatically initiated in the constructor
+        // No need to call reconnect() here
     }
 
     private setupEventHandlers() {
@@ -45,6 +62,7 @@ export class MqttSubscriber {
         this.setupOnReconnect()
         this.setupOnDisconnect()
         this.setupOnMessage()
+        this.setupOnError()
     }
     
     private subscribeToTopic() {
@@ -62,7 +80,7 @@ export class MqttSubscriber {
 
     private setupOnConnect() {
         this.client.on("connect", () => {
-            console.success(`🔗 Connected to MQTT broker!`)
+            console.success(`🔗 Connected to MQTT broker via secure TLS!`)
             this.subscribeToTopic()
         })
     }
@@ -92,15 +110,21 @@ export class MqttSubscriber {
 
     private setupOnReconnect() {
         this.client.on("reconnect", () => {
-            console.success("Reconnected to MQTT broker...")
-            this.subscribeToTopic()
+            console.warn("Reconnecting to MQTT broker...")
+            this.isSubscribed = false
         })
     }
 
     private setupOnDisconnect() {
         this.client.on("disconnect", () => {
-            console.warn("Disconnected from MQTT broker")
+            console.error("Disconnected from MQTT broker")
             this.isSubscribed = false
+        })
+    }
+
+    private setupOnError() {
+        this.client.on("error", (error) => {
+            console.error("MQTT connection error:", error.message)
         })
     }
 

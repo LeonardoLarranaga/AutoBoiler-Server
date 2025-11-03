@@ -7,6 +7,9 @@ export const routes = {
     "/app/auth/otp/verify": {
         POST: async (request: Request) => await HttpHandler.Auth.verifyOtp(request)
     },
+    "/app/auth/broker/certificate": {
+        POST: async (request: Request) => await HttpHandler.Auth.generateBrokerCertificate(request)
+    },
 
     "/app/kill/create": {
         POST: async (request: Request) => await HttpHandler.Kill.createKill(request)

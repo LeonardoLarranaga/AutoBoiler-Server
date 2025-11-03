@@ -1,3 +1,4 @@
+import { CertificateGenerator } from "../certificates/generator"
 import { DatabaseManager } from "../database/manager"
 
 export class AuthHandler {
@@ -32,4 +33,14 @@ export class AuthHandler {
             return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to verify OTP")
         }
     } 
+
+    static async generateBrokerCertificate(request: Request): Promise<Response> {
+        try {
+            const body = await parseAndValidate<{ token: string, espId: string }>(request)
+            return await CertificateGenerator.shared.generateBrokerCertificate(body.token, body.espId)
+        } catch (error: any) {
+            if (error instanceof Response) return error
+            return ErrorResponse.INTERNAL_SERVER_ERROR(error, "Failed to generate broker certificate")
+        }
+    }
 }
