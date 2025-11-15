@@ -130,7 +130,7 @@ export class DatabaseManager {
         try {
             const kill = await this.pocketbase.collection("kills").create({
                 user: userId,
-                espId: killId,
+                esp_id: killId,
                 name
             })
             return kill

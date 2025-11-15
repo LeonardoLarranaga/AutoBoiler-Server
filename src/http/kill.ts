@@ -19,7 +19,7 @@ export class KillHandler {
         if (kill instanceof Response) return kill
         return new Response(JSON.stringify(kill))
     }
-
+    
     static async listKills(request: Request): Promise<Response> {
         const body = await parseAndValidate<{ token: string }>(request)
 
