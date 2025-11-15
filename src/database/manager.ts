@@ -140,14 +140,16 @@ export class DatabaseManager {
         }
     }
 
-    createKillState(killId: string, temperature: number, power: number, waterFlow: number) {
+    createKillState(killId: string, power: number, flow: number, tempOut: number, tempIn: number, target: number) {
         this.getKillFromKillId(killId).then((kill) => {
             if (!kill) return
             this.pocketbase.collection("kills_states").create({
                 kill: kill.id,
-                temperature,
                 power,
-                water_flow: waterFlow,
+                water_flow: flow,
+                tempOut,
+                tempIn,
+                target,
             }).catch(() => {}) // Fire and forget
         }).catch(() => {})  // Fire and forget
     }

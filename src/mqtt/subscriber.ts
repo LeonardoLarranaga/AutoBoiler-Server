@@ -105,14 +105,16 @@ export class MqttSubscriber {
     }
 
     private handleMessage(id: string, data: string[]) {
-        const [temperatureStr, powerStr, waterFlowStr] = data
-        if (!powerStr || !waterFlowStr || !temperatureStr) return
+        const [powerStr, flowStr, tempOutStr, tempInStr, targetStr] = data
+        if (!powerStr || !flowStr || !tempOutStr || !tempInStr || !targetStr) return
         
-        const temperature = parseFloat(temperatureStr)
         const power = parseFloat(powerStr)
-        const waterFlow = parseFloat(waterFlowStr)
-        if (isNaN(temperature) || isNaN(power) || isNaN(waterFlow)) return
+        const flow = parseFloat(flowStr)
+        const tempOut = parseFloat(tempOutStr)
+        const tempIn = parseFloat(tempInStr)
+        const target = parseFloat(targetStr)
+        if (isNaN(power) || isNaN(flow) || isNaN(tempOut) || isNaN(tempIn) || isNaN(target)) return
         
-        DatabaseManager.shared.createKillState(id, temperature, power, waterFlow)
+        DatabaseManager.shared.createKillState(id, tempOut, power, flow, tempIn, target)
     }
 }
