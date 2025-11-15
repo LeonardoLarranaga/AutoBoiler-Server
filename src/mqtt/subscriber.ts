@@ -115,6 +115,6 @@ export class MqttSubscriber {
         const target = parseFloat(targetStr)
         if (isNaN(power) || isNaN(flow) || isNaN(tempOut) || isNaN(tempIn) || isNaN(target)) return
         
-        DatabaseManager.shared.createKillState(id, tempOut, power, flow, tempIn, target)
+        DatabaseManager.shared.createKillState(id, power, flow, tempOut, tempIn, target)
     }
 }
