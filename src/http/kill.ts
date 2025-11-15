@@ -37,7 +37,7 @@ export class KillHandler {
         const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
         if (!userId) return ErrorResponse.NOT_AUTHORIZED
 
-        if (body.killId.toUpperCase() !== "ESPIDTEST") {
+        if (body.killId.toUpperCase() !== "ESPIDTEST" || body.killId !== "3912") {
             if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
         }
         
@@ -64,7 +64,7 @@ export class KillHandler {
         const userId = await DatabaseManager.shared.getUserIdFromToken(body.token)
         if (!userId) return ErrorResponse.NOT_AUTHORIZED
 
-        if (body.killId.toUpperCase() !== "ESPIDTEST") {
+        if (body.killId.toUpperCase() !== "ESPIDTEST" || body.killId !== "3912") {
             if (!await DatabaseManager.shared.killBelongsToUser(body.killId.toUpperCase(), userId)) return ErrorResponse.NOT_AUTHORIZED
         }
         
