@@ -18,10 +18,11 @@ export class SummaryReportProcessor {
     public static shared: SummaryReportProcessor = new SummaryReportProcessor()
 
     public async process(boilerId: string): Promise<SummaryReport> {
-        // Get data for last 7 days
-        const startDate = new Date()
+        // Get the last kill state date before now, and take 7 days before that
+        const referenceDate = await DatabaseManager.shared.getLastKillStateDateBeforeTimestamp(boilerId, new Date()) || new Date()
+        const startDate = new Date(referenceDate)
         startDate.setDate(startDate.getDate() - 7)
-        const endDate = new Date()
+        const endDate = referenceDate
 
         const states = await DatabaseManager.shared.getKillStates(boilerId, startDate, endDate)
 
