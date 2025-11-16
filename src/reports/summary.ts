@@ -50,11 +50,11 @@ export class SummaryReportProcessor {
     }
 
     /**
-     * Get the last (up to) six temperature readings from the states
+     * Get the last (up to) six temperature out readings from the states
      */
     private getTemperatureReadings(states: RecordModel[]): number[] {
         if (!states || states.length === 0) return []
-        return states.slice(0, Math.min(6, states.length)).map((state) => state.temperature)
+        return states.slice(0, Math.min(6, states.length)).map((state) => state.tempOut)
     }
 
     /**

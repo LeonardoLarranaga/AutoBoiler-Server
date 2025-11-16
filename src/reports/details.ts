@@ -213,7 +213,7 @@ export class ReportDetailProcessor {
             let value: number
             switch (type) {
                 case "temperature":
-                    value = state.temperature
+                    value = state.tempOut
                     break
                 case "power":
                     value = state.power
